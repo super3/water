@@ -1,6 +1,7 @@
 # Water Tracker
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/super3/water/tests.yml?branch=main&label=tests)](https://github.com/super3/water/actions/workflows/tests.yml)
+[![Coverage](https://coveralls.io/repos/github/super3/water/badge.svg?branch=main)](https://coveralls.io/github/super3/water?branch=main)
 
 An Android water-intake tracker — a Jetpack Compose app plus a home-screen widget that share the same data.
 
