@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Water drop shape -->
+    <path
+        android:fillColor="#7AA2FF"
+        android:pathData="M54,20 C54,20 30,50 30,68 C30,81.25 40.75,92 54,92 C67.25,92 78,81.25 78,68 C78,50 54,20 54,20 Z" />
+
+</vector>

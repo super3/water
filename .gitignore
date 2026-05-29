@@ -1,0 +1,37 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Generated build output
+bin/
+gen/
+out/
+build/
+release/
+
+# Gradle
+.gradle/
+
+# Local configuration (SDK path, etc) — must not be committed
+local.properties
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.kotlin/
+captures/
+
+# Keystores / signing
+*.jks
+*.keystore
+keystore.properties
+
+# macOS
+.DS_Store
+
+# Claude Code local session/settings
+.claude/

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Water Tracker — Variant D ("Flush Goal Marker") design tokens -->
+    <color name="accent">#7AA2FF</color>
+    <color name="widget_bg">#0F1418</color>
+    <color name="page_bg">#1A1F2A</color>
+    <color name="ink">#E8EEF5</color>
+    <color name="ink_dim">#6A7280</color>
+    <color name="track">#2A3038</color>
+
+    <!-- Water Tracker app canvas -->
+    <color name="app_bg">#10141B</color>
+</resources>
