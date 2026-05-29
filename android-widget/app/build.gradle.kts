@@ -14,11 +14,13 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
         release {
             isMinifyEnabled = false
@@ -63,4 +65,13 @@ dependencies {
 
     // Unit tests (local JVM)
     testImplementation("junit:junit:4.13.2")
+
+    // Instrumented UI tests (Compose, on-device).
+    // Espresso 3.6.x is required on Android 14+ (older versions call the now-removed
+    // InputManager.getInstance()).
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
