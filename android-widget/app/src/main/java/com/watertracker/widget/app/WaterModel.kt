@@ -62,6 +62,23 @@ fun formatDayLabel(day: LocalDate): String = day.format(dayLabelFmt)
 
 fun nextId(entries: List<Entry>): Int = (entries.maxOfOrNull { it.id } ?: 0) + 1
 
+/** Serializes entries as `id,ts,amount` triples joined by `;` (for persistence). */
+fun encodeEntries(list: List<Entry>): String =
+    list.joinToString(";") { "${it.id},${it.ts},${it.amount}" }
+
+/** Parses [encodeEntries] output, skipping any malformed rows. */
+fun decodeEntries(s: String): List<Entry> {
+    if (s.isBlank()) return emptyList()
+    return s.split(";").mapNotNull { row ->
+        val parts = row.split(",")
+        if (parts.size != 3) return@mapNotNull null
+        val id = parts[0].toIntOrNull() ?: return@mapNotNull null
+        val ts = parts[1].toLongOrNull() ?: return@mapNotNull null
+        val amount = parts[2].toIntOrNull() ?: return@mapNotNull null
+        Entry(id, ts, amount)
+    }
+}
+
 /** A timestamp that lands on [day]: "now" if it's today, otherwise noon of that day. */
 fun timestampFor(day: LocalDate): Long =
     if (day == LocalDate.now()) System.currentTimeMillis()

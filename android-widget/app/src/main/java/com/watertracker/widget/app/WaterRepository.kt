@@ -28,46 +28,31 @@ object WaterRepository {
     private val GOAL = intPreferencesKey("goal")
 
     fun stateFlow(context: Context): Flow<WaterState> = context.waterStore.data.map { p ->
-        WaterState(decode(p[ENTRIES] ?: ""), p[GOAL] ?: WT_GOAL_DEFAULT)
+        WaterState(decodeEntries(p[ENTRIES] ?: ""), p[GOAL] ?: WT_GOAL_DEFAULT)
     }
 
     suspend fun snapshot(context: Context): WaterState {
         val p = context.waterStore.data.first()
-        return WaterState(decode(p[ENTRIES] ?: ""), p[GOAL] ?: WT_GOAL_DEFAULT)
+        return WaterState(decodeEntries(p[ENTRIES] ?: ""), p[GOAL] ?: WT_GOAL_DEFAULT)
     }
 
     suspend fun addEntry(context: Context, amount: Int, ts: Long) = context.waterStore.edit { p ->
-        val list = decode(p[ENTRIES] ?: "").toMutableList()
+        val list = decodeEntries(p[ENTRIES] ?: "").toMutableList()
         list.add(Entry(nextId(list), ts, amount))
-        p[ENTRIES] = encode(list)
+        p[ENTRIES] = encodeEntries(list)
     }
 
     suspend fun editEntry(context: Context, id: Int, amount: Int) = context.waterStore.edit { p ->
-        val list = decode(p[ENTRIES] ?: "").map { if (it.id == id) it.copy(amount = amount) else it }
-        p[ENTRIES] = encode(list)
+        val list = decodeEntries(p[ENTRIES] ?: "").map { if (it.id == id) it.copy(amount = amount) else it }
+        p[ENTRIES] = encodeEntries(list)
     }
 
     suspend fun deleteEntry(context: Context, id: Int) = context.waterStore.edit { p ->
-        val list = decode(p[ENTRIES] ?: "").filter { it.id != id }
-        p[ENTRIES] = encode(list)
+        val list = decodeEntries(p[ENTRIES] ?: "").filter { it.id != id }
+        p[ENTRIES] = encodeEntries(list)
     }
 
     suspend fun setGoal(context: Context, goal: Int) = context.waterStore.edit { p ->
         p[GOAL] = goal
-    }
-
-    private fun encode(list: List<Entry>): String =
-        list.joinToString(";") { "${it.id},${it.ts},${it.amount}" }
-
-    private fun decode(s: String): List<Entry> {
-        if (s.isBlank()) return emptyList()
-        return s.split(";").mapNotNull { row ->
-            val parts = row.split(",")
-            if (parts.size != 3) return@mapNotNull null
-            val id = parts[0].toIntOrNull() ?: return@mapNotNull null
-            val ts = parts[1].toLongOrNull() ?: return@mapNotNull null
-            val amount = parts[2].toIntOrNull() ?: return@mapNotNull null
-            Entry(id, ts, amount)
-        }
     }
 }

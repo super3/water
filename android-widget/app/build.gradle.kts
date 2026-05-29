@@ -57,4 +57,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
+
+    // Unit tests (local JVM)
+    testImplementation("junit:junit:4.13.2")
 }
