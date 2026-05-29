@@ -40,6 +40,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.watertracker.widget.app.WaterRepository
+import com.watertracker.widget.app.WidgetGeometry
 import com.watertracker.widget.app.sumForDay
 import java.time.LocalDate
 
@@ -71,18 +72,18 @@ class WaterTrackerWidget : GlanceAppWidget() {
 
     @Composable
     private fun WaterTrackerContent(ounces: Int, goal: Int) {
-        val progress = (ounces.toFloat() / goal).coerceIn(0f, 1f)
+        val progress = WidgetGeometry.progress(ounces, goal)
 
         // The ring is a square image centered in the widget; everything is positioned in that
         // same square so the "+" lands exactly on the ring (design tile = 192 units).
         val square = minOf(LocalSize.current.width, LocalSize.current.height)
-        val unit = square / 192f // one design unit, in dp
-        val s = square.value / 192f // scale factor for text/spacing (design tile = 192)
-        // The "+" is drawn into the bitmap at the 5 o'clock terminus (center ≈ 135,163.55).
-        // A transparent, slightly larger tap target is placed over it via spacers.
-        val tapSize = unit * 44f
-        val tapStart = unit * 113f // 135 - 22
-        val tapTop = unit * 141.55f // 163.55 - 22
+        val unit = square / WidgetGeometry.TILE // one design unit, in dp
+        val s = square.value / WidgetGeometry.TILE // scale factor for text/spacing
+        // Transparent tap target over the baked-in "+", positioned from the shared geometry.
+        val (tapX, tapY) = WidgetGeometry.plusTapTopLeft
+        val tapSize = unit * WidgetGeometry.PLUS_TAP
+        val tapStart = unit * tapX
+        val tapTop = unit * tapY
 
         Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             // Tile + ring + centered text. Tapping here (not the "+") opens the app.
@@ -149,16 +150,16 @@ class WaterTrackerWidget : GlanceAppWidget() {
         val canvas = Canvas(bitmap)
 
         val center = size / 2f
-        val ringRadius = 78f * scale
-        val strokeWidth = 12f * scale
+        val ringRadius = WidgetGeometry.RADIUS * scale
+        val strokeWidth = WidgetGeometry.STROKE * scale
 
         canvas.drawCircle(center, center, center, Paint().apply {
             color = 0xFF0F1418.toInt(); style = Paint.Style.FILL; isAntiAlias = true
         })
 
         val rect = RectF(center - ringRadius, center - ringRadius, center + ringRadius, center + ringRadius)
-        val startAngle = 120f // design 210° (7 o'clock)
-        val sweepAngle = 300f // → 5 o'clock; 60° bottom gap
+        val startAngle = WidgetGeometry.START_ANGLE
+        val sweepAngle = WidgetGeometry.SWEEP
 
         canvas.drawArc(rect, startAngle, sweepAngle, false, Paint().apply {
             color = 0xFF2A3038.toInt(); style = Paint.Style.STROKE; this.strokeWidth = strokeWidth
@@ -173,10 +174,11 @@ class WaterTrackerWidget : GlanceAppWidget() {
             })
         }
 
-        // Flush "+" button at the 5 o'clock terminus (angle 60°: cos=0.5, sin≈0.866).
-        val bx = center + ringRadius * 0.5f
-        val by = center + ringRadius * 0.8660254f
-        val btnR = 15f * scale
+        // Flush "+" button at the 5 o'clock terminus (from the shared, tested geometry).
+        val (px, py) = WidgetGeometry.plusCenter
+        val bx = px * scale
+        val by = py * scale
+        val btnR = (WidgetGeometry.PLUS_SIZE / 2f) * scale
         canvas.drawCircle(bx, by, btnR, Paint().apply {
             color = 0xFF7AA2FF.toInt(); style = Paint.Style.FILL; isAntiAlias = true
         })

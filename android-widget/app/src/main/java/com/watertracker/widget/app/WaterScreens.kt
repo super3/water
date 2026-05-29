@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -123,7 +125,9 @@ fun TodayScreen(
 
             // Settings gear
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(WT.card).border(1.dp, WT.track, CircleShape).clickable { onOpenGoal() },
+                Modifier.size(40.dp).clip(CircleShape).background(WT.card).border(1.dp, WT.track, CircleShape)
+                    .clickable { onOpenGoal() }
+                    .semantics { contentDescription = "Settings" },
                 contentAlignment = Alignment.Center,
             ) { GearIcon(size = 20.dp, color = WT.dim) }
         }
