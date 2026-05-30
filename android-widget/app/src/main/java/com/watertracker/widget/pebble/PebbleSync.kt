@@ -31,7 +31,14 @@ object PebbleProtocol {
     const val KEY_LOG_OZ: UInt = 10002u       // watch -> phone
     const val KEY_REQUEST_SYNC: UInt = 10003u // watch -> phone
     const val KEY_REMOVE_LAST: UInt = 10004u  // watch -> phone (delete most recent entry today)
+    const val KEY_WATCH_SEQ: UInt = 10005u    // watch -> phone (op id, for de-dup)
+    const val KEY_LOG_TS: UInt = 10006u       // watch -> phone (op timestamp, unix seconds)
 }
+
+/** Reads a dictionary number that arrives as either Int32 or UInt32. */
+private fun PebbleDictionary.intValue(key: UInt): Long? =
+    (this[key] as? PebbleDictionaryItem.Int32)?.value?.toLong()
+        ?: (this[key] as? PebbleDictionaryItem.UInt32)?.value?.toLong()
 
 /**
  * Push today's total + goal to the watch. Only lands while the watchapp is open
@@ -76,21 +83,30 @@ class PebbleListenerService : BasePebbleListenerService() {
     ): ReceiveResult {
         val app = applicationContext
 
-        // Received numbers always arrive as Int32 or UInt32 regardless of their size on the watch.
-        val logOz = (data[PebbleProtocol.KEY_LOG_OZ] as? PebbleDictionaryItem.Int32)?.value
-            ?: (data[PebbleProtocol.KEY_LOG_OZ] as? PebbleDictionaryItem.UInt32)?.value?.toInt()
-        if (logOz != null) {
-            WaterRepository.addEntry(app, logOz, System.currentTimeMillis())
-            WaterTrackerWidget().updateAll(app)
-        }
+        // De-dup resent ops by a monotonic high-water mark. A lost ACK makes the watch
+        // resend the same seq; skip applying it (but still ACK + echo so the watch advances).
+        val seq = data.intValue(PebbleProtocol.KEY_WATCH_SEQ)
+        val alreadyApplied = seq != null && seq <= WaterRepository.lastWatchSeq(app)
 
-        // RemoveLast: delete the most recent entry logged today (DOWN on the watch).
-        if (data.containsKey(PebbleProtocol.KEY_REMOVE_LAST)) {
-            val state = WaterRepository.snapshot(app)
-            entriesForDay(state.entries, LocalDate.now()).firstOrNull()?.let { last ->
-                WaterRepository.deleteEntry(app, last.id)
+        if (!alreadyApplied) {
+            val logOz = data.intValue(PebbleProtocol.KEY_LOG_OZ)?.toInt()
+            if (logOz != null) {
+                // Record at the watch's timestamp so offline logs land on the right day.
+                val ts = data.intValue(PebbleProtocol.KEY_LOG_TS)?.times(1000L) ?: System.currentTimeMillis()
+                WaterRepository.addEntry(app, logOz, ts)
                 WaterTrackerWidget().updateAll(app)
             }
+
+            // RemoveLast: delete the most recent entry logged today (DOWN on the watch).
+            if (data.containsKey(PebbleProtocol.KEY_REMOVE_LAST)) {
+                val state = WaterRepository.snapshot(app)
+                entriesForDay(state.entries, LocalDate.now()).firstOrNull()?.let { last ->
+                    WaterRepository.deleteEntry(app, last.id)
+                    WaterTrackerWidget().updateAll(app)
+                }
+            }
+
+            if (seq != null) WaterRepository.setLastWatchSeq(app, seq)
         }
 
         // RequestSync, a log, or a removal all get a fresh authoritative snapshot back.

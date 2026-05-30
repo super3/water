@@ -19,7 +19,9 @@
       "GoalOz",
       "LogOz",
       "RequestSync",
-      "RemoveLast"
+      "RemoveLast",
+      "WatchSeq",
+      "LogTs"
     ],
     "companionApp": {
       "android": {

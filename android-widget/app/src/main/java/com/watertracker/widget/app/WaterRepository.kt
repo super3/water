@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,8 @@ object WaterRepository {
 
     private val ENTRIES = stringPreferencesKey("entries")
     private val GOAL = intPreferencesKey("goal")
+    // High-water mark of the last watch op seq applied, for de-duping resent watch logs.
+    private val LAST_WATCH_SEQ = longPreferencesKey("last_watch_seq")
 
     // ── Public API (Context-based) — delegates to the DataStore-based impl below. ──
     fun stateFlow(context: Context): Flow<WaterState> = stateFlow(context.waterStore)
@@ -34,6 +37,8 @@ object WaterRepository {
     suspend fun editEntry(context: Context, id: Int, amount: Int) = editEntry(context.waterStore, id, amount)
     suspend fun deleteEntry(context: Context, id: Int) = deleteEntry(context.waterStore, id)
     suspend fun setGoal(context: Context, goal: Int) = setGoal(context.waterStore, goal)
+    suspend fun lastWatchSeq(context: Context): Long = lastWatchSeq(context.waterStore)
+    suspend fun setLastWatchSeq(context: Context, seq: Long) = setLastWatchSeq(context.waterStore, seq)
 
     // ── DataStore-based impl — `internal` so it can be unit-tested on the JVM with a
     //    file-backed DataStore (no Android Context / emulator needed). ──
@@ -70,5 +75,12 @@ object WaterRepository {
 
     internal suspend fun setGoal(store: DataStore<Preferences>, goal: Int) {
         store.edit { p -> p[GOAL] = goal }
+    }
+
+    internal suspend fun lastWatchSeq(store: DataStore<Preferences>): Long =
+        store.data.first()[LAST_WATCH_SEQ] ?: 0L
+
+    internal suspend fun setLastWatchSeq(store: DataStore<Preferences>, seq: Long) {
+        store.edit { p -> p[LAST_WATCH_SEQ] = seq }
     }
 }

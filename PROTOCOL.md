@@ -50,6 +50,8 @@ Both sides must use these exact numbers — they are NOT 0-based indices.
 | `LogOz`       | 10002  | int32  | watch → phone  | Log a glass: add this many oz (UP = +8).           |
 | `RequestSync` | 10003  | uint8  | watch → phone  | "Send me the current totals." Value is always `1`. |
 | `RemoveLast`  | 10004  | uint8  | watch → phone  | Delete the most recent entry logged today (DOWN).  |
+| `WatchSeq`    | 10005  | int32  | watch → phone  | Unique, monotonic op id (de-dup key). Sent with `LogOz`/`RemoveLast`. |
+| `LogTs`       | 10006  | int32  | watch → phone  | When the op was logged on the watch (unix seconds), sent with `LogOz`. |
 
 On the watch these are `MESSAGE_KEY_TodayOz`, etc. On Android they are the `UInt`
 constants in `PebbleProtocol` (`KEY_TODAY_OZ = 10000u`, …). Numbers received from the
@@ -64,19 +66,36 @@ watch always arrive as `Int32` or `UInt32` regardless of their size on the watch
 - The watch caches the last-known values in persistent storage, so the ring is
   correct immediately on launch even before the phone replies.
 
-### User logs a glass on the watch (UP)
-1. Watch optimistically adds 8 oz to the ring locally and redraws.
-2. Watch sends `LogOz = 8`.
-3. The listener's `onMessageReceived` calls `WaterRepository.addEntry(...)`, then
-   pushes the authoritative `TodayOz` + `GoalOz` back, which the watch adopts.
+### Offline-tolerant logging (the watch's sync layer)
 
-### User undoes a glass on the watch (DOWN)
-1. Watch sends `RemoveLast = 1`. It does **not** update optimistically — it tracks
-   only the daily total, not individual entries, so it can't know the deleted
-   entry's size.
-2. The listener deletes the most recent entry logged today via
-   `WaterRepository.deleteEntry(...)` (no-op if there are none), then pushes the
-   authoritative `TodayOz` back, and the ring refreshes to the new total.
+The watch keeps a **persistent queue** of pending "add a glass" ops so logs made
+while the phone is locked / out of range are never lost and the ring never
+reverts. Each op carries a unique monotonic `WatchSeq` and the `LogTs` it was
+logged at.
+
+- **UP** appends an op (`+8`), bumps the displayed total immediately, and tries
+  to flush.
+- **Flush** sends the front op (`LogOz` + `WatchSeq` + `LogTs`), one in flight at
+  a time. The op is removed from the queue only when the phone **ACKs** it
+  (PebbleKit 2 turns our `ReceiveResult.Ack` into the AppMessage ACK). Flush is
+  retried on launch, on a ~10s timer while open, and whenever a message arrives.
+- The watch **ignores incoming `TodayOz` while its queue is non-empty / a send is
+  in flight** — otherwise the echo would clobber an optimistic log that hasn't
+  reached the phone yet (this was the "ring reverts" bug). Once the queue drains,
+  the next echo re-bases the total.
+- **DOWN** cancels the most recent *unsynced* op locally if one exists; otherwise
+  it sends `RemoveLast` (online only) to delete the phone's most recent entry.
+
+On the phone, `onMessageReceived`:
+1. Reads `WatchSeq`. If `seq <= lastWatchSeq` (a resent op after a lost ACK), it
+   **skips applying** but still ACKs + echoes, so the watch advances.
+2. Otherwise applies the op — `addEntry(amount, LogTs * 1000)` (recorded at the
+   watch's timestamp so it lands on the right day) or deletes the latest entry —
+   then stores `seq` as the new `lastWatchSeq`.
+3. Pushes the authoritative `TodayOz` + `GoalOz` back.
+
+`WatchSeq` is seeded from the watch clock on first run, so it keeps increasing
+across reinstalls and the phone's high-water mark stays valid.
 
 ### User logs water on the phone (app or home-screen widget)
 1. Android writes through `WaterRepository` (existing behavior, unchanged).
