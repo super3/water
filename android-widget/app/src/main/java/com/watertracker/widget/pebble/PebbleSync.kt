@@ -46,11 +46,16 @@ suspend fun pushStateToPebble(context: Context) {
         PebbleProtocol.KEY_TODAY_OZ to PebbleDictionaryItem.Int32(today),
         PebbleProtocol.KEY_GOAL_OZ to PebbleDictionaryItem.Int32(state.goal),
     )
+    // Best-effort: if no Pebble app is installed / connected, sending is a no-op and
+    // close() can throw "Service not registered" (the bind never happened). Never let
+    // a missing watch crash the caller's coroutine.
     val sender = DefaultPebbleSender(app)
     try {
         sender.sendDataToPebble(PebbleProtocol.APP_UUID, data)
+    } catch (e: Exception) {
+        // watch unreachable — ignore
     } finally {
-        sender.close()
+        runCatching { sender.close() }
     }
 }
 

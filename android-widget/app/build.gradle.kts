@@ -70,10 +70,10 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 
     // Instrumented UI tests (Compose, on-device).
-    // Espresso 3.6.x is required on Android 14+ (older versions call the now-removed
-    // InputManager.getInstance()).
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    // Espresso 3.7.0 is required on Android 15+ (API 35/36): earlier versions call the
+    // now-removed InputManager.getInstance() during event-injector init and crash.
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
