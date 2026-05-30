@@ -31,6 +31,16 @@
                 android:resource="@xml/water_tracker_widget_info" />
         </receiver>
 
+        <!-- Pebble watch sync (PebbleKit 2). The Core Devices app binds this service
+             to deliver AppMessages (RequestSync / LogOz) and app-open events. -->
+        <service
+            android:name=".pebble.PebbleListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.rebble.pebblekit2.RECEIVE_DATA_FROM_WATCH" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

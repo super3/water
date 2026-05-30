@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.watertracker.widget"
-    compileSdk = 34
+    compileSdk = 36 // PebbleKit 2 pulls androidx.core 1.17, which requires compiling against SDK 36
 
     defaultConfig {
         applicationId = "com.watertracker.widget"
@@ -52,6 +52,9 @@ dependencies {
 
     // DataStore for persistence
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // PebbleKit 2 — talk to the watchapp via the Core Devices Pebble app (bound-service protocol)
+    implementation("io.rebble.pebblekit2:client:1.1.0")
 
     // Core Android
     implementation("androidx.core:core-ktx:1.12.0")

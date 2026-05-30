@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.appwidget.updateAll
 import com.watertracker.widget.WaterTrackerWidget
+import com.watertracker.widget.pebble.pushStateToPebble
 import kotlinx.coroutines.launch
 
 private sealed interface EntrySheet {
@@ -57,11 +58,12 @@ fun WaterApp() {
     var entrySheet by remember { mutableStateOf<EntrySheet?>(null) }
     var goalOpen by remember { mutableStateOf(false) }
 
-    // Persist a mutation, then refresh the home-screen widget so both surfaces stay in sync.
+    // Persist a mutation, then refresh the home-screen widget + watch so all surfaces stay in sync.
     fun persist(block: suspend () -> Unit) {
         scope.launch {
             block()
             WaterTrackerWidget().updateAll(context)
+            pushStateToPebble(context)
         }
     }
 

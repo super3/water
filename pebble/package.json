@@ -1,0 +1,37 @@
+{
+  "name": "water",
+  "author": "shawn",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Water",
+    "uuid": "6b329be5-682a-4283-892b-d596790bdfb1",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": ["aplite", "basalt", "chalk", "diorite", "emery"],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "TodayOz",
+      "GoalOz",
+      "LogOz",
+      "RequestSync"
+    ],
+    "companionApp": {
+      "android": {
+        "url": "https://github.com/super3/water",
+        "apps": [
+          {
+            "package": "com.watertracker.widget"
+          }
+        ]
+      }
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}
