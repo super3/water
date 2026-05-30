@@ -47,8 +47,9 @@ Both sides must use these exact numbers — they are NOT 0-based indices.
 | ------------- | ------ | ------ | -------------- | -------------------------------------------------- |
 | `TodayOz`     | 10000  | int32  | phone → watch  | Today's total intake, in oz.                       |
 | `GoalOz`      | 10001  | int32  | phone → watch  | Daily goal, in oz.                                 |
-| `LogOz`       | 10002  | int32  | watch → phone  | Adjust intake by this many oz (UP +8, DOWN −8).    |
+| `LogOz`       | 10002  | int32  | watch → phone  | Log a glass: add this many oz (UP = +8).           |
 | `RequestSync` | 10003  | uint8  | watch → phone  | "Send me the current totals." Value is always `1`. |
+| `RemoveLast`  | 10004  | uint8  | watch → phone  | Delete the most recent entry logged today (DOWN).  |
 
 On the watch these are `MESSAGE_KEY_TodayOz`, etc. On Android they are the `UInt`
 constants in `PebbleProtocol` (`KEY_TODAY_OZ = 10000u`, …). Numbers received from the
@@ -63,11 +64,19 @@ watch always arrive as `Int32` or `UInt32` regardless of their size on the watch
 - The watch caches the last-known values in persistent storage, so the ring is
   correct immediately on launch even before the phone replies.
 
-### User logs water on the watch
-1. Watch optimistically adjusts the ring locally (UP +8 / DOWN −8) and redraws.
-2. Watch sends `LogOz` (+8 or −8).
+### User logs a glass on the watch (UP)
+1. Watch optimistically adds 8 oz to the ring locally and redraws.
+2. Watch sends `LogOz = 8`.
 3. The listener's `onMessageReceived` calls `WaterRepository.addEntry(...)`, then
    pushes the authoritative `TodayOz` + `GoalOz` back, which the watch adopts.
+
+### User undoes a glass on the watch (DOWN)
+1. Watch sends `RemoveLast = 1`. It does **not** update optimistically — it tracks
+   only the daily total, not individual entries, so it can't know the deleted
+   entry's size.
+2. The listener deletes the most recent entry logged today via
+   `WaterRepository.deleteEntry(...)` (no-op if there are none), then pushes the
+   authoritative `TodayOz` back, and the ring refreshes to the new total.
 
 ### User logs water on the phone (app or home-screen widget)
 1. Android writes through `WaterRepository` (existing behavior, unchanged).

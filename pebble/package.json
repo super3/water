@@ -18,7 +18,8 @@
       "TodayOz",
       "GoalOz",
       "LogOz",
-      "RequestSync"
+      "RequestSync",
+      "RemoveLast"
     ],
     "companionApp": {
       "android": {

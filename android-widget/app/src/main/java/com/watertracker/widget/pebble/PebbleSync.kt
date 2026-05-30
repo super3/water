@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.watertracker.widget.WaterTrackerWidget
 import com.watertracker.widget.app.WaterRepository
+import com.watertracker.widget.app.entriesForDay
 import com.watertracker.widget.app.sumForDay
 import io.rebble.pebblekit2.client.BasePebbleListenerService
 import io.rebble.pebblekit2.client.DefaultPebbleSender
@@ -25,10 +26,11 @@ import java.util.UUID
 object PebbleProtocol {
     val APP_UUID: UUID = UUID.fromString("6b329be5-682a-4283-892b-d596790bdfb1")
 
-    const val KEY_TODAY_OZ: UInt = 10000u    // phone -> watch
-    const val KEY_GOAL_OZ: UInt = 10001u     // phone -> watch
-    const val KEY_LOG_OZ: UInt = 10002u      // watch -> phone
+    const val KEY_TODAY_OZ: UInt = 10000u     // phone -> watch
+    const val KEY_GOAL_OZ: UInt = 10001u      // phone -> watch
+    const val KEY_LOG_OZ: UInt = 10002u       // watch -> phone
     const val KEY_REQUEST_SYNC: UInt = 10003u // watch -> phone
+    const val KEY_REMOVE_LAST: UInt = 10004u  // watch -> phone (delete most recent entry today)
 }
 
 /**
@@ -77,7 +79,16 @@ class PebbleListenerService : BasePebbleListenerService() {
             WaterTrackerWidget().updateAll(app)
         }
 
-        // Both RequestSync and a log get a fresh authoritative snapshot back.
+        // RemoveLast: delete the most recent entry logged today (DOWN on the watch).
+        if (data.containsKey(PebbleProtocol.KEY_REMOVE_LAST)) {
+            val state = WaterRepository.snapshot(app)
+            entriesForDay(state.entries, LocalDate.now()).firstOrNull()?.let { last ->
+                WaterRepository.deleteEntry(app, last.id)
+                WaterTrackerWidget().updateAll(app)
+            }
+        }
+
+        // RequestSync, a log, or a removal all get a fresh authoritative snapshot back.
         pushStateToPebble(app)
         return ReceiveResult.Ack
     }

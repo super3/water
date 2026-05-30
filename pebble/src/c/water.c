@@ -79,6 +79,14 @@ static void send_log(int oz) {
   }
 }
 
+static void send_remove_last(void) {
+  DictionaryIterator *out;
+  if (app_message_outbox_begin(&out) == APP_MSG_OK) {
+    dict_write_uint8(out, MESSAGE_KEY_RemoveLast, 1);
+    app_message_outbox_send();
+  }
+}
+
 static void inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *today = dict_find(iter, MESSAGE_KEY_TodayOz);
   Tuple *goal = dict_find(iter, MESSAGE_KEY_GoalOz);
@@ -108,28 +116,20 @@ static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason, voi
 // Buttons
 // ---------------------------------------------------------------------------
 
-static void adjust_intake(int delta) {
-  // Nothing to remove when already at zero.
-  if (delta < 0 && s_today_oz <= 0) {
-    return;
-  }
-  // Optimistically update locally, then tell the phone. The phone is the
-  // source of truth and will echo back the authoritative TodayOz.
-  s_today_oz += delta;
-  if (s_today_oz < 0) {
-    s_today_oz = 0;
-  }
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Log a glass. Optimistically update locally, then tell the phone; the phone is
+  // the source of truth and echoes back the authoritative TodayOz.
+  s_today_oz += GLASS_OZ;
   persist_write_int(PERSIST_TODAY_OZ, s_today_oz);
   redraw();
-  send_log(delta);
-}
-
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  adjust_intake(GLASS_OZ);
+  send_log(GLASS_OZ);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  adjust_intake(-GLASS_OZ);
+  // Ask the phone to delete the most recent entry. We don't track individual
+  // entries here (only the total), so we can't know that entry's size — no
+  // optimistic update; the ring refreshes when the phone echoes the new total.
+  send_remove_last();
 }
 
 static void click_config_provider(void *context) {
@@ -164,7 +164,7 @@ static void window_load(Window *window) {
   text_layer_set_background_color(s_hint_layer, GColorClear);
   text_layer_set_text_alignment(s_hint_layer, GTextAlignmentCenter);
   text_layer_set_font(s_hint_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  text_layer_set_text(s_hint_layer, "UP +8   DN -8");
+  text_layer_set_text(s_hint_layer, "UP +8   DN undo");
   layer_add_child(root, text_layer_get_layer(s_hint_layer));
 
   redraw();
